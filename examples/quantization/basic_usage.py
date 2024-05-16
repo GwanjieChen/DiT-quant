@@ -23,7 +23,6 @@ def main():
 
     # load un-quantized model, by default, the model will always be loaded into CPU memory
     model = AutoGPTQForCausalLM.from_pretrained(pretrained_model_dir, quantize_config)
-
     # quantize model, the examples should be list of dict whose keys can only be "input_ids" and "attention_mask"
     model.quantize(examples)
 

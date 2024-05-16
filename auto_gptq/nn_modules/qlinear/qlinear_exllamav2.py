@@ -187,7 +187,6 @@ class QuantLinear(nn.Module):
             )
 
             x = x.half()
-
         output = ext_gemm_half_q_half(x, self.q_handle, self.outfeatures, force_cuda)
 
         if self.bias is not None:

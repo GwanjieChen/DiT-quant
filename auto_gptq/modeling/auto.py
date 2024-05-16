@@ -29,7 +29,8 @@ from .stablelmepoch import StableLMEpochGPTQForCausalLM
 from .starcoder2 import Starcoder2GPTQForCausalLM
 from .xverse import XverseGPTQForCausalLM
 from .yi import YiGPTQForCausalLM
-
+from .latte import WrappedLatte
+import torch
 
 GPTQ_CAUSAL_LM_MODEL_MAP = {
     "bloom": BloomGPTQForCausalLM,
@@ -165,4 +166,103 @@ class AutoGPTQForCausalLM:
         )
 
 
-__all__ = ["AutoGPTQForCausalLM"]
+class AutoGPTQForLatte:
+    def __init__(self):
+        raise EnvironmentError(
+            "AutoGPTQModelForLatte is designed to be instantiated\n"
+            "using `AutoGPTQModelForLatte.from_pretrained` if want to quantize a pretrained model.\n"
+            "using `AutoGPTQModelForLatte.from_quantized` if want to inference with quantized model."
+        )
+
+    @classmethod
+    def from_pretrained(
+        self,
+        pretrained_model_path: str,
+        quantize_config: BaseQuantizeConfig,
+        video_length: int,
+        ckpt:str,
+        **model_init_kwargs,
+    ):
+        return WrappedLatte.from_pretrained(pretrained_model_path,quantize_config,video_length,ckpt)
+        
+    @classmethod
+    def from_quantized(
+        cls,
+        model_name_or_path: Optional[str],
+        device_map: Optional[Union[str, Dict[str, Union[str, int]]]] = None,
+        max_memory: Optional[dict] = None,
+        device: Optional[Union[str, int]] = None,
+        low_cpu_mem_usage: bool = False,
+        use_triton: bool = False,
+        inject_fused_attention: bool = False,
+        inject_fused_mlp: bool = False,
+        use_cuda_fp16: bool = True,
+        quantize_config: Optional[BaseQuantizeConfig] = None,
+        model_basename: Optional[str] = None,
+        use_safetensors: bool = True,
+        trust_remote_code: bool = False,
+        warmup_triton: bool = False,
+        trainable: bool = False,
+        disable_exllama: Optional[bool] = None,
+        disable_exllamav2: bool = False,
+        use_marlin: bool = False,
+        use_tritonv2: bool = False,
+        pretrained_model_path = None,
+        video_length = 0,
+        **kwargs,
+    ) :
+        # If disable_exllamav2 is True, we want to fall back on the exllama kernel and not the cuda/cuda_old ones.
+        if disable_exllama is None:
+            if disable_exllamav2:
+                disable_exllama = False
+            else:
+                disable_exllama = True
+
+        quant_func = WrappedLatte.from_quantized
+        # A static list of kwargs needed for huggingface_hub
+        huggingface_kwargs = [
+            "cache_dir",
+            "force_download",
+            "proxies",
+            "resume_download",
+            "local_files_only",
+            "use_auth_token",
+            "revision",
+            "subfolder",
+            "_raise_exceptions_for_missing_entries",
+            "_commit_hash",
+        ]
+        # TODO: do we need this filtering of kwargs? @PanQiWei is there a reason we can't just pass all kwargs?
+        keywords = {
+            key: kwargs[key]
+            for key in list(signature(quant_func).parameters.keys()) + huggingface_kwargs
+            if key in kwargs
+        }
+        return quant_func(
+            model_name_or_path=model_name_or_path,
+            device_map=device_map,
+            max_memory=max_memory,
+            device=device,
+            low_cpu_mem_usage=low_cpu_mem_usage,
+            use_triton=use_triton,
+            inject_fused_attention=inject_fused_attention,
+            inject_fused_mlp=inject_fused_mlp,
+            use_cuda_fp16=use_cuda_fp16,
+            quantize_config=quantize_config,
+            model_basename=model_basename,
+            use_safetensors=use_safetensors,
+            trust_remote_code=trust_remote_code,
+            warmup_triton=warmup_triton,
+            trainable=trainable,
+            disable_exllama=disable_exllama,
+            disable_exllamav2=disable_exllamav2,
+            use_marlin=use_marlin,
+            use_tritonv2=use_tritonv2,
+            pretrained_model_path = pretrained_model_path,
+            video_length = video_length,
+            torch_dtype = torch.float16,
+            **keywords,
+        )
+
+
+__all__ = ["AutoGPTQForCausalLM", "AutoGPTQForLatte"]

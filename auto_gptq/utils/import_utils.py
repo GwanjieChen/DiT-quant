@@ -91,6 +91,7 @@ def dynamically_import_QuantLinear(
                     disable_exllama = False
                 else:
                     disable_exllama = True
+            # breakpoint()
             if bits == 4 and use_marlin:
                 from ..nn_modules.qlinear.qlinear_marlin import QuantLinear
             elif bits == 4 and not disable_exllamav2 and EXLLAMAV2_KERNELS_AVAILABLE:
